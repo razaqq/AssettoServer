@@ -10,12 +10,18 @@ namespace ChangeWeatherPlugin;
 public class ChangeWeather
 {
     private readonly ACServer _server;
+    private readonly WeatherManager _weatherManager;
+    private readonly EntryCarManager _entryCarManager;
+    private readonly IWeatherTypeProvider _weatherTypeProvider;
     private readonly List<WeatherFxType> _weathers;
 
-    public ChangeWeather(ACServer server)
+    public ChangeWeather(ACServer server, WeatherManager weatherManager, IWeatherTypeProvider weatherTypeProvider, EntryCarManager entryCarManager)
     {
         _server = server;
-        
+        _weatherManager = weatherManager;
+        _weatherTypeProvider = weatherTypeProvider;
+        _entryCarManager = entryCarManager;
+
         _weathers = Enum.GetValues<WeatherFxType>().ToList();
     }
 
@@ -28,15 +34,15 @@ public class ChangeWeather
         }
 
         var weather = _weathers[choice];
-        var weatherType = _server.WeatherTypeProvider.GetWeatherType(weather);
-        _server.BroadcastPacket(new ChatMessage { SessionId = 255, Message = $"The weather will be set to {weather}." });
+        var weatherType = _weatherTypeProvider.GetWeatherType(weather);
+        _entryCarManager.BroadcastPacket(new ChatMessage { SessionId = 255, Message = $"The weather will be set to {weather}." });
 
-        var last = _server.CurrentWeather;
-        _server.SetWeather(new WeatherData(last.Type, weatherType)
+        var last = _weatherManager.CurrentWeather;
+        _weatherManager.SetWeather(new WeatherData(last.Type, weatherType)
         {
             TransitionDuration = 120000.0,
             TemperatureAmbient = last.TemperatureAmbient,
-            TemperatureRoad = (float)WeatherUtils.GetRoadTemperature(_server.CurrentDateTime.TimeOfDay.TickOfDay / 10_000_000.0, last.TemperatureAmbient,
+            TemperatureRoad = (float)WeatherUtils.GetRoadTemperature(_weatherManager.CurrentDateTime.TimeOfDay.TickOfDay / 10_000_000.0, last.TemperatureAmbient,
                 weatherType.TemperatureCoefficient),
             Pressure = last.Pressure,
             Humidity = (int)(weatherType.Humidity * 100),
