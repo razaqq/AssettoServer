@@ -89,12 +89,21 @@ end
 local function TeleportHUDClosed(okClicked)
   if okClicked then
     physics.setCarVelocity(0, vec3(0, 0, 0))
+
     if ac.hasTrackSpline() then
       local finalPos = FixWorldPosHeight(vec3(targetPos.x, 0, targetPos.y))
       -- careful, the direction needs to be able to be normalized, otherwise the game crashes
       physics.setCarPosition(0, finalPos, vec3(1, 0, 0))
     else
-      ac.setMessage('Error', 'This track is missing a track spline, cant teleport.')
+      -- this is a bit hacky...
+      local finalPos = vec3(targetPos.x, 5000, targetPos.y)
+      local point = vec3(0, 0, 0)
+      -- the normal appears to be buggy, maybe the ray bounce is influenced by vegetation?
+      if physics.raycastTrack(finalPos, vec3(0, -1, 0), 10000, point, nil) > -1 then
+        physics.setCarPosition(0, point + vec3(0, 1, 0), vec3(1, 0, 0))
+      else
+        ac.setMessage('Error', 'Failed to determine y coordinate of track.')
+      end
     end
   end
 end
